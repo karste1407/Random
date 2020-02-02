@@ -1,0 +1,50 @@
+#!/usr/bin/env python
+
+import sys
+import math
+
+import rospy
+import tf2_ros 
+from tf.transformations import quaternion_from_euler
+from geometry_msgs.msg import TransformStamped, Vector3
+from aruco_msgs.msg import MarkerArray
+
+
+def callback(data):
+    #n detected aruco markers
+    nMarkers = len(data.markers)
+
+    #Create broadcaster for transforms                                     
+    aruco_broadcaster= tf2_ros.TransformBroadcaster()
+
+    for marker in range(nMarkers):
+        aruco_position = data.markers[marker].pose.pose.position
+        aruco_rotation = data.markers[marker].pose.pose.orientation
+        aruco_id = data.markers[marker].id
+        aruco_frame = data.markers[marker].header.frame_id
+        aruco_timestamp = data.markers[marker].header.stamp
+
+        rospy.loginfo('Aruco Marker %s detected!',str(aruco_id))
+        rospy.loginfo(aruco_position)
+
+        t = TransformStamped()
+
+        #Transform from aruco marker frame to map frame
+        t.header.frame_id = 'map'
+        t.child_frame_id = aruco_frame
+        t.header.stamp = aruco_timestamp
+        t.transform.translation = aruco_position
+        t.transform.rotation = aruco_rotation
+
+        #Send transform
+        aruco_broadcaster.sendTransform(t,)
+
+
+def main():
+    rospy.init_node('arucotransformer',anonymous=True)
+    
+    rospy.Subscriber('aruco/markers',MarkerArray,callback)
+    rospy.spin()
+
+if __name__ == "__main__":
+    main()
