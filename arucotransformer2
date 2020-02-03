@@ -16,10 +16,12 @@ def callback(data):
 
     #Create broadcaster for transforms                                     
     aruco_broadcaster= tf2_ros.TransformBroadcaster()
+    dx = 0.01
+    dz = 0.02
 
     for marker in range(nMarkers):
         
-        pub.publish(data)
+        #pub.publish(data)
 
         aruco_position = data.markers[marker].pose.pose.position
         aruco_rotation = data.markers[marker].pose.pose.orientation
@@ -29,21 +31,27 @@ def callback(data):
         
         t = TransformStamped()
 
-        #Transform from aruco marker frame to map frame
-        t.header.frame_id = 'cf1/odom'
-        t.child_frame_id = aruco_frame
+        t.header.frame_id = 'cf1/base_link'
+        t.child_frame_id = 'aruco/detected'+str(aruco_id)
         t.header.stamp = aruco_timestamp
-        t.transform.translation = aruco_position
-        t.transform.rotation = aruco_rotation
+        t.transform.translation.x = aruco_position.z-dx
+        t.transform.translation.y = aruco_position.x+dz
+        t.transform.translation.z = aruco_position.y
+        t.transform.rotation.y = aruco_rotation.x
+        t.transform.rotation.z = aruco_rotation.z
+        t.transform.rotation.w = aruco_rotation.w
 
         #Send transform
         aruco_broadcaster.sendTransform(t)
 
-pub = rospy.Publisher('/aruco/detected_preTransform',MarkerArray,queue_size=10)
+#pub = rospy.Publisher('/aruco/detected_preTransform',MarkerArray,queue_size=10)
 def main():
     rospy.init_node('arucotransformer',anonymous=True)
     rospy.Subscriber('aruco/markers',MarkerArray,callback)
     rospy.spin()
 
 if __name__ == "__main__":
-    main()
+    rospy.init_node('arucotransformer',anonymous=True)
+    rospy.Subscriber('aruco/markers',MarkerArray,callback)
+    rospy.spin()
+    #main()
