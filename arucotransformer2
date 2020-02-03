@@ -28,16 +28,19 @@ def callback(data):
         aruco_id = data.markers[marker].id
         aruco_frame = data.markers[marker].header.frame_id
         aruco_timestamp = data.markers[marker].header.stamp
+
+        rospy.loginfo(aruco_position)
         
         t = TransformStamped()
 
-        t.header.frame_id = 'cf1/base_link'
+        t.header.frame_id = 'cf1/camera_link'
         t.child_frame_id = 'aruco/detected'+str(aruco_id)
         t.header.stamp = aruco_timestamp
-        t.transform.translation.x = aruco_position.z-dx
-        t.transform.translation.y = aruco_position.x+dz
-        t.transform.translation.z = aruco_position.y
-        t.transform.rotation.y = aruco_rotation.x
+        t.transform.translation.x = aruco_position.z
+        t.transform.translation.y = -aruco_position.x
+        t.transform.translation.z = -aruco_position.y
+        t.transform.rotation.x = aruco_rotation.x
+        t.transform.rotation.y = aruco_rotation.y
         t.transform.rotation.z = aruco_rotation.z
         t.transform.rotation.w = aruco_rotation.w
 
