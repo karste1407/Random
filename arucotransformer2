@@ -34,9 +34,9 @@ def callback(data):
         t.header.frame_id = 'cf1/base_link'
         t.child_frame_id = 'aruco/detected'+str(aruco_id)
         t.header.stamp = aruco_timestamp
-        t.transform.translation.x = aruco_position.x+dx
-        t.transform.translation.y = aruco_position.y+0
-        t.transform.translation.z = aruco_position.z+dz
+        t.transform.translation.x = aruco_position.z
+        t.transform.translation.y = -aruco_position.x
+        t.transform.translation.z = -aruco_position.y
         t.transform.rotation.x = aruco_rotation.x
         t.transform.rotation.y = aruco_rotation.y
         t.transform.rotation.z = aruco_rotation.z
