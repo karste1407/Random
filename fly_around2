@@ -20,7 +20,7 @@ def create_goal(coordinate):
     goal.yaw = coordinate[3]
     return goal
 
-coordinates1 = [(-3,-1,0.4,0),(1,-1,0.4,0),(1.8,-1,0.4,0)]#,(1.8,-1,0.4,90),(1.8,1,0.4,180)]
+coordinates1 = [(0,0,0.4,0),(-2,-1,0.4,0),(1,-1,0.4,0),(1.8,-1,0.4,0)]
 coordinates2 = [(1.8,-1,0.4,90),(1.8,1.2,0.4,90),(1.8,1.2,0.4,0),(-1.8,1.2,0.4,0)]
 def main():
     rospy.init_node('fly_around2')
@@ -30,15 +30,19 @@ def main():
     final_goal2 = create_goal((-1.8,-1,0.4,0))
 
     while not rospy.is_shutdown():
+        '''
         for i in range(len(coordinates1)):
             pub_cmd.publish(create_goal(coordinates1[i]))
-            rospy.sleep(1.0)
+            rospy.sleep(2.0)
         pub_cmd.publish(final_goal1)
-
+        '''
+        pub_cmd.publish(create_goal(coordinates1[0]))
+        '''
         for j in range(len(coordinates2)):
             pub_cmd.publish(create_goal(coordinates2[j]))
             rospy.sleep(1.0)
         pub_cmd.publish(final_goal2)
+        '''
 
         rate.sleep()
         rospy.spin()

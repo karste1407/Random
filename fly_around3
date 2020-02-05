@@ -50,11 +50,11 @@ def create_navgoal(coordinate):
     return goal
 
 rospy.init_node('fly_around3')
-pub_navgoal = rospy.Publisher('/move_base_simple/goal', PoseStamped, queue_size=2)
+pub_navgoal = rospy.Publisher('/move_base_simple/goal', PoseStamped, queue_size=10)
 sub_goal = rospy.Subscriber('/move_base_simple/goal', PoseStamped, goal_callback)
-pub_cmd  = rospy.Publisher('/cf1/cmd_position', Position, queue_size=2)
+pub_cmd  = rospy.Publisher('/cf1/cmd_position', Position, queue_size=10)
 
-coordinates = [(0,-1,0.4,0),(1,-1,0.4,0),(1.8,-1,0.4,0),(1.8,-1,0.4,90),(1.8,-1,0.4,90)]
+coordinates = [(0,-1,0.4,0),(1,-1,0.4,0),(1.8,-1,0.4,0),(1.8,-1,0.4,90),(1.8,-1,0.4,90),(1.8,1,0.4,0),(1,1,0.4,0),(-1,1,0.4,0)]
 
 
 def main():
@@ -64,7 +64,7 @@ def main():
             navgoal = create_navgoal(coordinates[i])
             pub_navgoal.publish(navgoal)
             publish_cmd(navgoal)
-            rospy.sleep(1)
+            rospy.sleep(10)
         rate.sleep()
 
 if __name__ == '__main__':
