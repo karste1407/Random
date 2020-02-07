@@ -31,7 +31,7 @@ def callback(data):
         
         t = TransformStamped()
 
-        t.header.frame_id = 'cf1/base_link'
+        t.header.frame_id = 'cf1/camera_link'
         t.child_frame_id = 'aruco/detected'+str(aruco_id)
         t.header.stamp = aruco_timestamp
         t.transform.translation.x = aruco_position.z
@@ -39,7 +39,7 @@ def callback(data):
         t.transform.translation.z = -aruco_position.y
         t.transform.rotation.x = aruco_rotation.x
         t.transform.rotation.y = aruco_rotation.y
-        t.transform.rotation.z = aruco_rotation.z
+        t.transform.rotation.z = -aruco_rotation.z
         t.transform.rotation.w = aruco_rotation.w
 
         #Send transform

@@ -2,45 +2,22 @@
 
 import math
 import rospy
-from tf.transformations import quaternion_from_euler,euler_from_quaternion
+import tf2_ros
+import tf2_geometry_msgs
+from tf.transformations import euler_from_quaternion, quaternion_from_euler
 from geometry_msgs.msg import PoseStamped
 from crazyflie_driver.msg import Position
+import numpy as np
 
-# Current goal (global state)
-goal = None
+global setpoint
+global error
+error = 1e2
 
-def goal_callback(msg):
-    global goal
-
-    # RViz's "2D Nav Goal" publishes z=0, so add some altitude if needed.
-    if msg.pose.position.z == 0.0:
-        msg.pose.position.z = 0.4
-
-    rospy.loginfo('New goal set:\n%s', msg)
-    goal = msg
-
-def publish_cmd(goal):
-    cmd = Position()
-
-    cmd.header.stamp = rospy.Time.now()
-    cmd.header.frame_id = goal.header.frame_id
-
-    cmd.x = goal.pose.position.x
-    cmd.y = goal.pose.position.y
-    cmd.z = goal.pose.position.z
-
-    roll, pitch, yaw = euler_from_quaternion((goal.pose.orientation.x,
-                                              goal.pose.orientation.y,
-                                              goal.pose.orientation.z,
-                                              goal.pose.orientation.w))
-
-    cmd.yaw = math.degrees(yaw)
-
-    pub_cmd.publish(cmd)
 
 def create_navgoal(coordinate):
     goal = PoseStamped()
-    goal.header.stamp = rospy.Time(0)
+    goal.header.frame_id = 'map'
+    goal.header.stamp = rospy.Time.now()
     goal.pose.position.x = coordinate[0]
     goal.pose.position.y = coordinate[1]
     goal.pose.position.z = coordinate[2]
@@ -49,23 +26,188 @@ def create_navgoal(coordinate):
 
     return goal
 
+def publish_cmd(goal):
+    # Need to tell TF that the goal was just generated
+    goal.header.stamp = rospy.Time.now()
+
+    if not tf_buf.can_transform(goal.header.frame_id, 'cf1/odom', goal.header.stamp):
+        rospy.logwarn_throttle(5.0, 'No transform from %s to cf1/odom' % goal.header.frame_id)
+        return
+
+    goal_odom = tf_buf.transform(goal, 'cf1/odom')
+
+    cmd = Position()
+
+    cmd.header.stamp = rospy.Time.now()
+    cmd.header.frame_id = goal_odom.header.frame_id
+
+    cmd.x = goal_odom.pose.position.x
+    cmd.y = goal_odom.pose.position.y
+    cmd.z = goal_odom.pose.position.z
+
+    roll, pitch, yaw = euler_from_quaternion((goal_odom.pose.orientation.x,
+                                              goal_odom.pose.orientation.y,
+                                              goal_odom.pose.orientation.z,
+                                              goal_odom.pose.orientation.w))
+
+    cmd.yaw = math.degrees(yaw)
+
+    pub_cmd.publish(cmd)
+
+def callback(data):
+    global error
+    x = data.pose.position.x
+    y = data.pose.position.y
+    z = data.pose.position.z
+    
+    try:
+        x_target = setpoint.pose.position.x
+        y_target = setpoint.pose.position.y
+        z_target = setpoint.pose.position.z
+
+        tmp = [x_target-x,y_target-y,z_target-z]
+        error = np.sqrt(sum([i**2 for i in tmp]))
+
+        #rospy.loginfo('error in callback= '+str(error))
+    except AttributeError:
+        pass
+    
+
+
 rospy.init_node('fly_around3')
-pub_navgoal = rospy.Publisher('/move_base_simple/goal', PoseStamped, queue_size=10)
-sub_goal = rospy.Subscriber('/move_base_simple/goal', PoseStamped, goal_callback)
-pub_cmd  = rospy.Publisher('/cf1/cmd_position', Position, queue_size=10)
 
-coordinates = [(0,-1,0.4,0),(1,-1,0.4,0),(1.8,-1,0.4,0),(1.8,-1,0.4,90),(1.8,-1,0.4,90),(1.8,1,0.4,0),(1,1,0.4,0),(-1,1,0.4,0)]
+setpoint = create_navgoal((0,-1,0.4,0))
 
+pub_cmd  = rospy.Publisher('/cf1/cmd_position', Position, queue_size=1)
+myPose = rospy.Subscriber('/cf1/pose',PoseStamped,callback)
+tf_buf   = tf2_ros.Buffer()
+tf_lstn  = tf2_ros.TransformListener(tf_buf)
+
+coordinates = [(0,-1,0.4,0),(1.8,-1,0.4,0),(3,-1,0.4,0),(2,1,0.4,0),(1,1,0.4,0),(-1,1,0.4,0)]
+#coordinates = [(-2,-2,0.4,0),(2,2,0.4,0)]
+tol = 0.3
 
 def main():
-    rate = rospy.Rate(10)  # Hz
+    rate = rospy.Rate(20)  # Hz
+    rospy.sleep(10)
+    '''
+    
     while not rospy.is_shutdown():
-        for i in range(len(coordinates)):
-            navgoal = create_navgoal(coordinates[i])
-            pub_navgoal.publish(navgoal)
-            publish_cmd(navgoal)
-            rospy.sleep(10)
+        for c in coordinates:
+            setpoint = create_navgoal(c)
+
+            rospy.loginfo('---------------')
+            rospy.loginfo('New setpoint:')
+            rospy.loginfo(setpoint)
+
+            global error
+            error = 1e2
+
+            #While navpoint not reached --> wait
+            while error > tol:
+                rospy.loginfo('MSE position: '+str(error))
+                setpoint.header.stamp = rospy.Time.now()
+                publish_cmd(setpoint)
+                #rospy.sleep(0.01)    
+            rate.sleep()
+    '''
+    '''
+    for c in coordinates:
+        setpoint = create_navgoal(c)
+
+        rospy.loginfo('---------------')
+        rospy.loginfo('New setpoint:')
+        rospy.loginfo(setpoint)
+
+        global error
+        error = 1e2
+        
+        while error > tol:
+            rospy.loginfo('MSE position: '+str(error))
+            setpoint.header.stamp = rospy.Time.now()
+            publish_cmd(setpoint)
+            rate.sleep()
+        
+    
+    final_setpoint = create_navgoal(coordinates[-1])
+    while not rospy.is_shutdown():
+        rospy.loginfo('final set point reached!')
+        publish_cmd(final_setpoint)
         rate.sleep()
+    
+    #rospy.spin()
+    '''
+    while not rospy.is_shutdown():
+        setpoint = create_navgoal(coordinates[0])
+        global error
+        stop = 80
+        i=0
+            
+        while stop > i:
+            rospy.loginfo('i: '+str(i))
+            setpoint.header.stamp = rospy.Time.now()
+            publish_cmd(setpoint)
+            i+=1
+            rate.sleep()
+        
+        setpoint = create_navgoal(coordinates[1])
+        i=0
+        stop = 80
+            
+        while stop > i:
+            rospy.loginfo('i: '+str(i))
+            setpoint.header.stamp = rospy.Time.now()
+            publish_cmd(setpoint)
+            i+=1
+            rate.sleep()
+
+        setpoint = create_navgoal(coordinates[2])
+
+        stop = 80
+        i = 0
+
+        while stop > i:
+            rospy.loginfo('i: '+str(i))
+            setpoint.header.stamp = rospy.Time.now()
+            publish_cmd(setpoint)
+            i+=1
+            rate.sleep()
+        
+        setpoint = create_navgoal(coordinates[3])
+        stop = 80
+        i = 0
+
+        while stop > i:
+            rospy.loginfo('i: '+str(i))
+            setpoint.header.stamp = rospy.Time.now()
+            publish_cmd(setpoint)
+            i+=1
+            rate.sleep()
+
+        setpoint = create_navgoal(coordinates[4])
+        stop = 80
+        i = 0
+
+        while stop > i:
+            rospy.loginfo('i: '+str(i))
+            setpoint.header.stamp = rospy.Time.now()
+            publish_cmd(setpoint)
+            i+=1
+            rate.sleep()
+
+        setpoint = create_navgoal(coordinates[5])
+        stop = 80
+        i = 0
+
+        while stop > i:
+            rospy.loginfo('i: '+str(i))
+            setpoint.header.stamp = rospy.Time.now()
+            publish_cmd(setpoint)
+            i+=1
+            rate.sleep()
+
+    #rospy.spin()
+    
 
 if __name__ == '__main__':
     main()

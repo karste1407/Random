@@ -44,7 +44,8 @@ class image_converter:
     y_percent = y_fraction*100
 
     if y_percent > 25:
-        rospy.loginfo('%s percent of the pixels are yellow: I have detected a yellow traffic sign!',str(y_percent))
+        rospy.sleep(0.2)
+        rospy.loginfo('I have detected a yellow traffic sign!')
 
     # Publish the image
     try:
