@@ -1,0 +1,51 @@
+#!/usr/bin/env python
+
+import math
+import rospy
+from tf.transformations import euler_from_quaternion
+from geometry_msgs.msg import PoseStamped
+from crazyflie_driver.msg import Position
+
+# Current goal (global state)
+goal = None
+
+pub_cmd  = rospy.Publisher('/cf1/cmd_position', Position, queue_size=2)
+
+def create_goal(coordinate):
+    goal = Position()
+    goal.header.stamp = rospy.Time.now()
+    goal.x = coordinate[0]
+    goal.y = coordinate[1]
+    goal.z = coordinate[2]
+    goal.yaw = coordinate[3]
+    return goal
+
+coordinates1 = [(0,0,0.4,0),(-2,-1,0.4,0),(1,-1,0.4,0),(1.8,-1,0.4,0)]
+coordinates2 = [(1.8,-1,0.4,90),(1.8,1.2,0.4,90),(1.8,1.2,0.4,0),(-1.8,1.2,0.4,0)]
+def main():
+    rospy.init_node('fly_around2')
+    rate = rospy.Rate(10)  # Hz
+
+    final_goal1 = create_goal((1.8,-1,0.4,0))
+    final_goal2 = create_goal((-1.8,-1,0.4,0))
+
+    while not rospy.is_shutdown():
+        '''
+        for i in range(len(coordinates1)):
+            pub_cmd.publish(create_goal(coordinates1[i]))
+            rospy.sleep(2.0)
+        pub_cmd.publish(final_goal1)
+        '''
+        pub_cmd.publish(create_goal(coordinates1[0]))
+        '''
+        for j in range(len(coordinates2)):
+            pub_cmd.publish(create_goal(coordinates2[j]))
+            rospy.sleep(1.0)
+        pub_cmd.publish(final_goal2)
+        '''
+
+        rate.sleep()
+        rospy.spin()
+
+if __name__ == '__main__':
+    main()

@@ -1,0 +1,58 @@
+#!/usr/bin/env python
+
+import sys
+import math
+
+import rospy
+import tf2_ros 
+from tf.transformations import quaternion_from_euler
+from geometry_msgs.msg import TransformStamped, Vector3
+from aruco_msgs.msg import MarkerArray
+
+
+def callback(data):
+    #n detected aruco markers
+    nMarkers = len(data.markers)
+
+    #Create broadcaster for transforms                                     
+    aruco_broadcaster= tf2_ros.TransformBroadcaster()
+    dx = 0.01
+    dz = 0.02
+
+    for marker in range(nMarkers):
+        
+        #pub.publish(data)
+
+        aruco_position = data.markers[marker].pose.pose.position
+        aruco_rotation = data.markers[marker].pose.pose.orientation
+        aruco_id = data.markers[marker].id
+        aruco_frame = data.markers[marker].header.frame_id
+        aruco_timestamp = data.markers[marker].header.stamp
+        
+        t = TransformStamped()
+
+        t.header.frame_id = 'cf1/camera_link'
+        t.child_frame_id = 'aruco/detected'+str(aruco_id)
+        t.header.stamp = aruco_timestamp
+        t.transform.translation.x = aruco_position.z
+        t.transform.translation.y = -aruco_position.x
+        t.transform.translation.z = -aruco_position.y
+        t.transform.rotation.x = aruco_rotation.x
+        t.transform.rotation.y = aruco_rotation.y
+        t.transform.rotation.z = -aruco_rotation.z
+        t.transform.rotation.w = aruco_rotation.w
+
+        #Send transform
+        aruco_broadcaster.sendTransform(t)
+
+#pub = rospy.Publisher('/aruco/detected_preTransform',MarkerArray,queue_size=10)
+def main():
+    rospy.init_node('arucotransformer',anonymous=True)
+    rospy.Subscriber('aruco/markers',MarkerArray,callback)
+    rospy.spin()
+
+if __name__ == "__main__":
+    rospy.init_node('arucotransformer',anonymous=True)
+    rospy.Subscriber('aruco/markers',MarkerArray,callback)
+    rospy.spin()
+    #main()

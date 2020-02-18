@@ -1,0 +1,64 @@
+#!/usr/bin/env python
+
+import sys
+import math
+
+import rospy
+import tf2_ros 
+from tf.transformations import euler_from_quaternion
+from geometry_msgs.msg import TransformStamped, Vector3,PointStamped
+from aruco_msgs.msg import MarkerArray
+
+def publishTF2topic(transform,marker_n):
+    pub = rospy.Publisher('/aruco/detected'+str(marker_n))
+    pub.publish(transform)
+
+def callback(data):
+    tf_buf   = tf2_ros.Buffer()
+    tf_lstn  = tf2_ros.TransformListener(tf_buf)
+
+    #n detected aruco markers
+    nMarkers = len(data.markers)
+
+    for marker in range(nMarkers):
+    
+        aruco_position = data.markers[marker].pose.pose.position
+        aruco_rotation = data.markers[marker].pose.pose.orientation
+        aruco_id = data.markers[marker].id
+        aruco_frame = data.markers[marker].header.frame_id
+        aruco_timestamp = data.markers[marker].header.stamp
+
+        pre_transform = PointStamped()
+        pre_transform.header.stamp = aruco_timestamp
+        pre_transform.point = aruco_position
+        #pre_transform.pose.orientation = aruco_rotation
+    
+        
+        #rospy.loginfo(aruco_frame)
+        if not tf_buf.can_transform(aruco_frame, 'cf1/odom', aruco_timestamp):
+            rospy.logwarn_throttle(5.0, 'No transform from %s to map frame' % aruco_frame)
+        return
+        
+        post_transform = tf_buf.transform(pre_transform, 'cf1/odom')
+
+        rospy.loginfo('Aruco Marker %s detected!',str(aruco_id))
+        rospy.loginfo(post_transform.pose.position)
+
+        publishTF2topic(post_transform,aruco_id)
+
+        rospy.loginfo('Aruco Marker %s detected!',str(aruco_id))
+        rospy.loginfo(aruco_position)
+
+
+        
+
+
+def main():
+    rospy.init_node('arucolistener',anonymous=True)
+
+    rospy.Subscriber('aruco/detected_preTransform',MarkerArray,callback)
+
+    rospy.spin()
+
+if __name__ == "__main__":
+    main()
