@@ -1,0 +1,13 @@
+https://github.com/ultralytics/yolov3/wiki/Train-Custom-Data
+
+
+
+https://timebutt.github.io/static/how-to-train-yolov2-to-detect-custom-objects/
+
+https://towardsdatascience.com/training-yolo-for-object-detection-in-pytorch-with-your-custom-dataset-the-simple-way-1aa6f56cf7d9
+  --> https://github.com/cfotache/pytorch_custom_yolo_training
+
+
+https://towardsdatascience.com/object-detection-and-tracking-in-pytorch-b3cf1a696a98
+
+https://blog.insightdatascience.com/how-to-train-your-own-yolov3-detector-from-scratch-224d10e55de2
