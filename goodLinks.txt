@@ -1,5 +1,9 @@
 https://github.com/ultralytics/yolov3/wiki/Train-Custom-Data
 
+https://www.arunponnusamy.com/yolo-object-detection-opencv-python.html
+
+https://www.learnopencv.com/faster-r-cnn-object-detection-with-pytorch/
+
 
 
 https://timebutt.github.io/static/how-to-train-yolov2-to-detect-custom-objects/
